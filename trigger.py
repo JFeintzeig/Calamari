@@ -87,23 +87,42 @@ class HeaterTrigger(Module):
     taken at the exact same time.  It uses the heater data from the previous entry to
     find the trigger time, and returns the bolometer data from that time
     '''
-    def __init__(self,name,window_time):
+    def __init__(self,name,window_time,min_voltage_trigger_threshold):
         self.window_time=window_time
         self.window=0
         self.dt_sample=0
         self.n_samples=0
+        self.min_voltage_trigger_threshold=min_voltage_trigger_threshold
         super(HeaterTrigger,self).__init__(name)
 
-    #TODO: calculate heater amp, energy
     def calculate_heater_params(self,chain_entry,min_ind):
+        # this stuff could also go in its own module, independent of the trigger...
         w=numpy.array(chain_entry.Waveform)
         thresh=w[min_ind]*0.9
         pulse=w[w<thresh]
         heater_width=len(pulse)*chain_entry.dt_s # seconds
+        heater_leading_edge_time=min(numpy.argwhere(w<thresh))[0]*self.dt_sample
         baseline=numpy.mean(w[w>thresh])
         heater_amp=numpy.mean(pulse)-baseline
         heater_energy=heater_amp**2*heater_width
-        return heater_amp, heater_width, heater_energy
+        return heater_amp, heater_width, heater_energy, heater_leading_edge_time
+
+    def read_out_waveform(self,chain,i,ind):
+        chain.GetEntry(i)
+        start=ind-self.window/2
+        end=ind+self.window/2
+        waveform=numpy.zeros(end-start)
+        if start<0:
+            waveform[-1*start:]=chain.Waveform[:end]
+            chain.GetEntry(i-2)
+            waveform[:-1*start]=chain.Waveform[self.n_samples+start:]
+        elif end>self.n_samples:
+            waveform[:self.n_samples-start]=chain.Waveform[start:]
+            chain.GetEntry(i+2)
+            waveform[self.n_samples-start:]=chain.Waveform[:end-self.n_samples]
+        else:
+            waveform=numpy.array(chain.Waveform[start:end])
+        return waveform, start
 
     @Module._execute
     def execute(self,chain,i):
@@ -133,28 +152,21 @@ class HeaterTrigger(Module):
         assert chain.t_s==t_s
         assert chain.t_mus==t_mus
         ind=numpy.argmin(chain.Waveform)
-        heater_amp, heater_width, heater_energy=\
+        # throw away pulses below heater threshold
+        if chain.Waveform[ind]>self.min_voltage_trigger_threshold:
+            return False
+        heater_amp, heater_width, heater_energy, heater_leading_edge_time=\
             self.calculate_heater_params(chain,ind)
         event['HeaterAmplitude']=heater_amp
         event['HeaterWidth']=heater_width
         event['HeaterEnergy']=heater_energy
+        event['HeaterLeadingEdgeTime']=heater_leading_edge_time+event['Time']
 
         # read out bolometer waveform for heater time +/- window/2
-        chain.GetEntry(i)
-        start=ind-self.window/2
-        end=ind+self.window/2
-        waveform=numpy.zeros(end-start)
-        if start<0:
-            waveform[-1*start:]=chain.Waveform[:end]
-            chain.GetEntry(i-2)
-            waveform[:-1*start]=chain.Waveform[self.n_samples+start:]
-        elif end>self.n_samples:
-            waveform[:self.n_samples-start]=chain.Waveform[start:]
-            chain.GetEntry(i+2)
-            waveform[self.n_samples-start:]=chain.Waveform[:end-self.n_samples]
-        else:
-            waveform=numpy.array(chain.Waveform[start:end])
-        event['Waveform']=waveform
+        event['Waveform'],start=self.read_out_waveform(chain,i,ind)
+        event['HeaterWaveform'],start=self.read_out_waveform(chain,i+1,ind)
+
+        event['Time']+=start*self.dt_sample
 
         # return event dictionary
         return event

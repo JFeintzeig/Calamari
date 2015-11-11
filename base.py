@@ -42,22 +42,22 @@ class FileLooper(object):
         self.open_file()
         if self.logging:
             print "Starting loop"
-        i=0
+        self.i=0
         if n_events==0:
             n_events=self.chain.GetEntries()
-        while i < n_events:
+        while self.i < n_events:
             # apply trigger to each entry in root tree
             # this builds triggered waveforms, puts them in dict structure
             # other modules work with event data in dict form
-            event=self.trigger.execute(self.chain,i)
-            if event:
-                for name in self.modules:
+            event=self.trigger.execute(self.chain,self.i)
+            for name in self.modules:
+                if event:
                     event=self.modules[name].execute(event)
-                self.events+=[event]
-            i+=1
-            if self.logging and i%100==0:
-                print "Event %i / %i" % (i, n_events)
-            if i==n_events:
+            self.events+=[event]
+            self.i+=1
+            if self.logging and self.i%100==0:
+                print "Event %i / %i" % (self.i, n_events)
+            if self.i==n_events:
                 break
         end_time=time.time()
 
@@ -107,22 +107,3 @@ class Module(object):
 
     def finish(self):
         pass
-
-class Average(Module):
-    '''
-    simple module to calculate the average baseline for an event
-    '''
-    def __init__(self,name,input_name):
-        self.avg=[]
-        self.input_name=input_name
-        super(Average,self).__init__(name)
-
-    @Module._execute
-    def execute(self,event):
-        avg=numpy.mean(event[self.input_name])
-        print avg
-        self.avg+=[avg]
-
-    @Module._finish
-    def finish(self):
-        self.avg=numpy.array(self.avg)

@@ -64,13 +64,32 @@ class PulseParams(Module):
         # calculate height
         ind=numpy.argmax(waveform)
         baseline=numpy.mean(waveform[0:int(0.75*ind)])
+        std=numpy.std(waveform[0:int(0.75*ind)])
         height=waveform[ind]-baseline
 
         # calculate decay time
         thresh=baseline+height*(1/numpy.e)
-        decay_time=(max(numpy.argwhere(waveform>thresh))[0]-ind)*dt_sample
+        try:
+            decay_time=(max(numpy.argwhere(waveform>thresh))[0]-ind)*dt_sample
+        #TODO: had problems with pulses that are just flat lines, no data...
+        # why does this happen??
+        # fix this/treat this better...
+        except ValueError:
+            return False
+
+        #calculate leading edge
+        try:
+            leading_edge=min(numpy.argwhere(waveform>baseline+5*std))[0]*dt_sample+\
+                event['Time']
+        #TODO: if no samples 5 sigma above baseline...need to treat this better
+        except ValueError:
+            leading_edge=-1
+
+        # calculate heater leading edge
 
         # write output
+        event[self.name+'_LeadingEdgeTime']=leading_edge
+        event[self.name+'_Baseline']=baseline
         event[self.name+'_PulseHeight']=height
         event[self.name+'_DecayTime']=decay_time
         return event
