@@ -53,7 +53,8 @@ class FileLooper(object):
             for name in self.modules:
                 if event:
                     event=self.modules[name].execute(event)
-            self.events+=[event]
+            if event:
+                self.events+=[event]
             self.i+=1
             if self.logging and self.i%100==0:
                 print "Event %i / %i" % (self.i, n_events)
