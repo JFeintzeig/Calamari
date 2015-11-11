@@ -47,3 +47,35 @@ class Filter(Module):
     @Module._finish
     def finish(self):
         pass
+
+class PulseParams(Module):
+    '''
+    calculate pulse height, decay constant, etc.
+    '''
+    def __init__(self,name,waveform_name):
+        self.waveform_name=waveform_name
+        super(PulseParams,self).__init__(name)
+
+    @Module._execute
+    def execute(self,event):
+        dt_sample=event['dt_sample']
+        waveform=event[self.waveform_name]
+
+        # calculate height
+        ind=numpy.argmax(waveform)
+        baseline=numpy.mean(waveform[0:int(0.75*ind)])
+        height=waveform[ind]-baseline
+
+        # calculate decay time
+        thresh=baseline+height*(1/numpy.e)
+        decay_time=(max(numpy.argwhere(waveform>thresh))[0]-ind)*dt_sample
+
+        # write output
+        event[self.name+'_PulseHeight']=height
+        event[self.name+'_DecayTime']=decay_time
+        return event
+
+    @Module._finish
+    def finish(self):
+        pass
+
