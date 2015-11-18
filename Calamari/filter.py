@@ -85,8 +85,6 @@ class PulseParams(Module):
         except ValueError:
             leading_edge=-1
 
-        # calculate heater leading edge
-
         # write output
         event[self.name+'_LeadingEdgeTime']=leading_edge
         event[self.name+'_Baseline']=baseline

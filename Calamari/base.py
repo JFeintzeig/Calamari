@@ -1,9 +1,5 @@
-import sys
 import time
 import ROOT
-import numpy
-import pylab
-from scipy.signal import butter, lfilter, freqz
 
 class FileLooper(object):
     def __init__(self,file_names,tree_name,logging=True):
@@ -62,10 +58,33 @@ class FileLooper(object):
                 break
         end_time=time.time()
 
-    def write_output(self,outfile_name):
+    def write_output(self,outfile_name,ROOT=True,pickle=False):
         #build record array of output from each module
-        #then turn into rootfile
-        pass
+        #then turn into rootfile or pickle file
+
+        # assume all dict's are the same structure
+        dt=[]
+        for item in self.events[0]:
+            if type(self.events[0][item])==numpy.ndarray:
+                dt+=[(item,type(self.events[0][item][0]),len(self.events[0][item])]
+            else:
+                dt+=[(item,type(self.events[0][item]))]
+
+        dt=numpy.dtype(dt)
+        values=[tuple(each.values()) for each in self.events]
+        out=numpy.zeros((len(FL.events),),dtype=dt)
+        out[:]=values
+
+        if ROOT:
+            if self.logging:
+                print "Creating file %s.root" % (outfile_name)
+            root_numpy.array2root(out,'%s.root' % (outfile_name))
+        if pickle:
+            if self.logging:
+                print "Creating file %s.pickle" % (outfile_name)
+            f=open('%s.pickle' % (outfile_name),'w')
+            pickle.dump(out,f)
+            f.close()
 
     def finish(self):
         self.trigger.finish()
