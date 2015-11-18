@@ -43,6 +43,7 @@ FL.add_module(pulse_params)
 
 FL.loop()
 FL.finish()
+FL.write_output('test')
 
 #plot stuff
 import pandas
