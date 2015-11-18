@@ -45,135 +45,89 @@ FL.loop()
 FL.finish()
 FL.write_output('test')
 
-#plot stuff
-import pandas
-events=[]
-for item in FL.events:
-    if item:
-        events+=[item]
+##################################
+# Extra stuff - make plots, etc. #
+##################################
 
-data=pandas.DataFrame(events)
+# Much of this stuff is specific to Run 103, the first run with heater pulse
+# height scans that I looked at.  I include it below just as an example of how
+# to work with this data and make plots in python.  This can all easily be done
+# in ROOT instead as well
 
-# for run 103
-plot_vars=['HeaterEnergy','HeaterWidth','Time','PulseParams_DecayTime',\
-    'HeaterAmplitude','PulseParams_PulseHeight','PulseParams_Baseline']
+plot_heater_data=False
+if plot_heater_data:
 
-t0=1.4472008e9+265
-from scipy import stats
-width=data.HeaterWidth==0.00002
-high=data.HeaterEnergy>0.4e-7
-low=data.HeaterEnergy<0.4e-7
-x=data['HeaterEnergy'][width]
-y=data['PulseParams_PulseHeight'][width]
-m1,b1,r,p,std=stats.linregress(x[high],y[high])
-line=lambda x,m,b: m*x+b
+    data=pandas.DataFrame(FL.events)
 
-pylab.plot(x[high],line(x[high],m1,b1),color='red',linewidth=1.3)
-pylab.scatter(x,y,color='black')
-pylab.xlabel(r'Heater "Energy" (V$^2$*s)')
-pylab.ylabel('Pulse Height (V)')
-pylab.xlim(0,1.7e-7)
-pylab.ylim(0,0.025)
-pylab.grid()
-pylab.savefig(out_dir+'height_vs_energy.png')
-pylab.show()
+    # select events with a certain heater width
+    # fit pulse height vs. heater energy with a linear function
+    t0=1.4472008e9+265
+    from scipy import stats
+    width=data.HeaterWidth==0.00002
+    high=data.HeaterEnergy>0.4e-7 # only fit high-energy data
+    x=data['HeaterEnergy'][width]
+    y=data['PulseParams_PulseHeight'][width]
+    m1,b1,r,p,std=stats.linregress(x[high],y[high])
+    line=lambda x,m,b: m*x+b
 
-data.DT=data.PulseParams_LeadingEdgeTime-data.HeaterLeadingEdgeTime
-good=data.DT>-0.2
-pylab.hist(1000*data.DT[good],
-    300,histtype='step',linewidth=2)
-pylab.xlabel(r'$\Delta t$ (ms)',size='14')
-pylab.ylabel('Counts')
-pylab.grid()
-pylab.xlim(0,1)
-pylab.savefig(out_dir+'time_resolution.png')
-pylab.show()
-
-plot_vars=['HeaterEnergy','HeaterWidth','Time','PulseParams_DecayTime',\
-    'HeaterAmplitude','PulseParams_PulseHeight','PulseParams_Baseline']
-for var in plot_vars:
-    pylab.hist(data[var],100,histtype='step',color='black',linewidth=2)
-    pylab.xlabel(var)
+    # plot pulse height vs. heater energy, along with linear fit
+    pylab.plot(x[high],line(x[high],m1,b1),color='red',linewidth=1.3)
+    pylab.scatter(x,y,color='black')
+    pylab.xlabel(r'Heater "Energy" (V$^2$*s)')
+    pylab.ylabel('Pulse Height (V)')
+    pylab.xlim(0,1.7e-7)
+    pylab.ylim(0,0.025)
     pylab.grid()
-    pylab.show()
-    pylab.scatter(data['Time'],data[var])
-    pylab.xlabel('Time')
-    pylab.ylabel(var)
-    pylab.grid()
-    pylab.show()
-    pylab.scatter(data[var][data['Time']<t0],\
-        data['PulseParams_PulseHeight'][data['Time']<t0])
-    #pylab.scatter(data[var],\
-    #    data['PulseParams_PulseHeight'])
-    pylab.xlabel(var)
-    pylab.ylabel('PulseParams_PulseHeight')
-    pylab.grid()
+    pylab.savefig(out_dir+'height_vs_energy.png')
     pylab.show()
 
-def timeme(fn,n,*args):
-    i=0
-    st=time.time()
-    while i<n:
-        fn(*args)
-        i+=1
-    et=time.time()
-    print et-st
+    # plot time resolution between heater leading edge and bolometer
+    # pulse leading edge
+    data.DT=data.PulseParams_LeadingEdgeTime-data.HeaterLeadingEdgeTime
+    # remove large negative outliers, which are likely due to the module
+    # failing to find a good leading edge time on the bolometer pulse
+    good=data.DT>-0.2
+    pylab.hist(1000*data.DT[good],
+        300,histtype='step',linewidth=2)
+    pylab.xlabel(r'$\Delta t$ (ms)',size='14')
+    pylab.ylabel('Counts')
+    pylab.grid()
+    pylab.xlim(0,1)
+    pylab.savefig(out_dir+'time_resolution.png')
+    pylab.show()
 
-#plots:
-#-time diff between heater and bolo rising edge
+    # make histograms and scatter plots of these variables
+    plot_vars=['HeaterEnergy','HeaterWidth','Time','PulseParams_DecayTime',\
+        'HeaterAmplitude','PulseParams_PulseHeight','PulseParams_Baseline']
+    for var in plot_vars:
+        pylab.hist(data[var],100,histtype='step',color='black',linewidth=2)
+        pylab.xlabel(var)
+        pylab.grid()
+        pylab.show()
+        pylab.scatter(data['Time'],data[var])
+        pylab.xlabel('Time')
+        pylab.ylabel(var)
+        pylab.grid()
+        pylab.show()
+        pylab.scatter(data[var][data['Time']<t0],\
+            data['PulseParams_PulseHeight'][data['Time']<t0])
+        pylab.xlabel(var)
+        pylab.ylabel('PulseParams_PulseHeight')
+        pylab.grid()
+        pylab.show()
 
-heater_energy=(data['HeaterEnergy']>1.25e-7)&(data['HeaterEnergy']<1.4e-7)
-data['PulseParams_PulseHeight'][heater_energy].hist(bins=40,
-    color='black',histtype='step',linewidth=2,grid=True)
-pylab.xlabel('Pulse Height (V)')
-pylab.xlim(0.005,0.030)
-pylab.savefig(out_dir+'pulse_height.png')
-pylab.show()
+    # pulse height histogram and decay time histogram for a given heater energy
+    heater_energy=(data['HeaterEnergy']>1.25e-7)&(data['HeaterEnergy']<1.4e-7)
+    data['PulseParams_PulseHeight'][heater_energy].hist(bins=40,
+        color='black',histtype='step',linewidth=2,grid=True)
+    pylab.xlabel('Pulse Height (V)')
+    pylab.xlim(0.005,0.030)
+    pylab.savefig(out_dir+'pulse_height.png')
+    pylab.show()
 
-data['PulseParams_DecayTime'][heater_energy].hist(bins=40,
-    color='black',histtype='step',linewidth=2,grid=True)
-pylab.xlabel('Decay Time (s)')
-pylab.xlim(0,0.002)
-pylab.savefig(out_dir+'decay_time.png')
-pylab.show()
-
-time_cut=data['Time']<t0
-pylab.scatter(data['HeaterWidth'][time_cut],\
-    data['PulseParams_PulseHeight'][time_cut],color='black')
-pylab.xlim(0.0001,0.0008)
-pylab.ylim(0,0.035)
-pylab.xlabel('Heater Width (s)')
-pylab.ylabel('Pulse Height (V)')
-pylab.grid()
-pylab.savefig(out_dir+'height_vs_heaterwidth.png')
-pylab.show()
-
-pylab.scatter(data['HeaterEnergy'][time_cut],\
-    data['PulseParams_PulseHeight'][time_cut],color='black')
-pylab.xlabel(r'Heater "Energy" (V$^2$*s)')
-pylab.ylabel('Pulse Height (V)')
-pylab.xlim(0.5e-7,4e-7)
-pylab.ylim(0,0.035)
-pylab.grid()
-pylab.savefig(out_dir+'height_vs_heaterenergy.png')
-pylab.show()
-
-t=numpy.linspace(0,len(data.Waveform.loc[0])*1e-5,len(data.Waveform.loc[0]))
-pylab.plot(t,data.Waveform.loc[0],linewidth=2,color='black')
-pylab.grid()
-pylab.xlabel('Time (s)')
-pylab.ylabel('Voltage (V)')
-pylab.savefig(out_dir+'example_pulse.png')
-pylab.show()
-
-t=numpy.linspace(0,len(data.Waveform.loc[0])*1e-5,len(data.Waveform.loc[0]))
-for event in events[:15]:
-    waveform=event['Waveform']
-    ind=numpy.argmax(waveform)
-    baseline=numpy.mean(waveform[0:int(0.75*ind)])
-    std=numpy.std(waveform[0:int(0.75*ind)])
-    leading_edge=min(numpy.argwhere(waveform>baseline+5*std))[0]*dt_sample+\
-        event['Time']
-    pylab.plot(event['Time']+t,waveform)
-    pylab.axvline(leading_edge)
+    data['PulseParams_DecayTime'][heater_energy].hist(bins=40,
+        color='black',histtype='step',linewidth=2,grid=True)
+    pylab.xlabel('Decay Time (s)')
+    pylab.xlim(0,0.002)
+    pylab.savefig(out_dir+'decay_time.png')
     pylab.show()
