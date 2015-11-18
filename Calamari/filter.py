@@ -50,19 +50,29 @@ class Filter(Module):
 
 class PulseParams(Module):
     '''
-    calculate pulse height, decay constant, etc.
+    Module to calculate pulse height, decay constant, etc.
     '''
     def __init__(self,name,waveform_name):
+        '''
+        Input:
+        -name: string name of module for pretty printing
+        -waveform_name: string name in event dict corresponding to bolometer waveform
+        '''
         self.waveform_name=waveform_name
         super(PulseParams,self).__init__(name)
 
     @Module._execute
     def execute(self,event):
+        '''
+        Do this on each event. It calculates pulse height, decay time, leading
+        edge time, etc. for a bolometer pulse
+        '''
         dt_sample=event['dt_sample']
         waveform=event[self.waveform_name]
 
         # calculate height
         ind=numpy.argmax(waveform)
+        # use 3/4 of data before pulse maximum to estimate baseline and baselineRMS
         baseline=numpy.mean(waveform[0:int(0.75*ind)])
         std=numpy.std(waveform[0:int(0.75*ind)])
         height=waveform[ind]-baseline
@@ -71,17 +81,19 @@ class PulseParams(Module):
         thresh=baseline+height*(1/numpy.e)
         try:
             decay_time=(max(numpy.argwhere(waveform>thresh))[0]-ind)*dt_sample
-        #TODO: had problems with pulses that are just flat lines, no data...
-        # why does this happen??
-        # fix this/treat this better...
+        # i had problems with pulses that are just flat lines, no data...
+        # i think this happens when the SQUID loses lock
+        # right now, such pulses give a ValueError, so drop them from the data
+        # processing flow.  might be worth treat this better at trigger level instead
         except ValueError:
             return False
 
-        #calculate leading edge
         try:
+            # leading edge defined as time when pulse goes 5 sigma above baseline
             leading_edge=min(numpy.argwhere(waveform>baseline+5*std))[0]*dt_sample+\
                 event['Time']
-        #TODO: if no samples 5 sigma above baseline...need to treat this better
+        # if no samples 5 sigma above baseline, set equal to -1
+        # ...probably need to treat this better
         except ValueError:
             leading_edge=-1
 
