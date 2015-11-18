@@ -59,8 +59,8 @@ class FileLooper(object):
 
     def loop(self,n_events=0):
         '''
-        This is where all the actual happens. This function loops through
-        each entry of the TChain. For each entry, it:
+        This is where all the actual calculations/work happens. This function
+        loops through each entry of the TChain. For each entry, it:
             -applies the trigger module on the ROOT TChain entry, which returns
             a dict of data for that event
             -applies each additional module to this outputed dict. each
@@ -150,6 +150,12 @@ class Module(object):
     Base class for Modules to plug into FileLooper
 
     All Modules can have names (strings), event counters, and timers
+
+    For a Trigger Module, the execute() method should take in a TChain and an
+    integer corresponding to the current position in the TChain to consider
+
+    For a standard Module, the execute() method should take in a dict that contains
+    all data for that given (already triggered) event
     '''
     def __init__(self,name):
         '''
