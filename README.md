@@ -5,10 +5,33 @@ This python project has tools to analyze SQUID data from the Berkeley DAQ.
 It consists of a lightweight, modular framework to loop through ROOT trees with waveforms, apply triggering, filtering, calculations of parameters, etc.
 It can then write the results to a ROOT file or a python pickle file
 
+Installation
+------------
+
+No installation is required.  Just clone the repository, add the directory to your $PYTHONPATH, and you're good to go:
+
+>In [1]: import Calamari
+
+>In [2]: Calamari.
+>Calamari.FileLooper(        Calamari.__getattribute__(  Calamari.__subclasshook__(
+>Calamari.Filter(            Calamari.__hash__(          Calamari.base
+>Calamari.HeaterTrigger(     Calamari.__init__(          Calamari.butter(
+>Calamari.Module(            Calamari.__name__           Calamari.filter
+>Calamari.PulseParams(       Calamari.__new__(           Calamari.freqz(
+>Calamari.ROOT               Calamari.__package__        Calamari.lfilter(
+>Calamari.SimpleTrigger(     Calamari.__path__           Calamari.numpy
+>Calamari.__class__(         Calamari.__reduce__(        Calamari.pylab
+>Calamari.__delattr__(       Calamari.__reduce_ex__(     Calamari.root\_numpy
+>Calamari.__dict__           Calamari.__repr__(          Calamari.time
+>Calamari.__doc__            Calamari.__setattr__(       Calamari.trigger
+>Calamari.__file__           Calamari.__sizeof__(        
+>Calamari.__format__(        Calamari.__str__(           
+
+
 Requirements and Dependencies
 -----------------------------
 
-This project was built using:
+This project was created using:
 
 >Python 2.7.9
 
