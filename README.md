@@ -8,8 +8,8 @@ It can then write the results to a ROOT file or a python pickle file
 Installation
 ------------
 
-No installation is required
-Just clone the repository, add the directory to your $PYTHONPATH, and you're good to ggo.
+No installation is required.
+Just clone the repository, add the directory to your $PYTHONPATH, and you're good to go.
 
 Requirements and Dependencies
 -----------------------------
