@@ -9,17 +9,24 @@ Requirements and Dependencies
 -----------------------------
 
 This project was built using:
-Python 2.7.9
-ROOT 5.34/25 w/pyROOT pybindings
+
+>Python 2.7.9
+
+>ROOT 5.34/25 w/pyROOT pybindings
 
 The following python libraries are required for processing data:
-numpy==1.9.2
-root-numpy==4.4.0
-scipy==0.15.1
+
+>numpy==1.9.2
+
+>root-numpy==4.4.0
+
+>scipy==0.15.1
 
 The following libraries are helpful for plotting, and some of the example scripts may make use of them:
-matplotlib==1.4.2
-pandas==0.16.2
+
+>matplotlib==1.4.2
+
+>pandas==0.16.2
 
 Code Structure
 --------------
