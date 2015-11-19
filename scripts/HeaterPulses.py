@@ -21,7 +21,6 @@ data_dir='/Users/jfeintzeig/CUORE/Data/squid/Run_000103/test/'
 # directory to save plots in
 out_dir='/Users/jfeintzeig/CUORE/Scripts/2015/SQUIDDataAnalysis/plots/Run_000103/test/'
 file_names=glob.glob(data_dir+'*.root')
-file_names=glob.glob(data_dir+'*.root')
 # name of tree in root file where data is stored
 tree_name='data_tree'
 
