@@ -5,8 +5,21 @@ This python project has tools to analyze SQUID data from the Berkeley DAQ.
 It consists of a lightweight, modular framework to loop through ROOT trees with waveforms, apply triggering, filtering, calculations of parameters, etc.
 It can then write the results to a ROOT file or a python pickle file
 
-Dependencies
-------------
+Requirements and Dependencies
+-----------------------------
+
+This project was built using:
+Python 2.7.9
+ROOT 5.34/25 w/pyROOT pybindings
+
+The following python libraries are required for processing data:
+numpy==1.9.2
+root-numpy==4.4.0
+scipy==0.15.1
+
+The following libraries are helpful for plotting, and some of the example scripts may make use of them:
+matplotlib==1.4.2
+pandas==0.16.2
 
 Code Structure
 --------------
@@ -33,4 +46,7 @@ The PulseParams class calculates basic pulse parameters, such as amplitude, deca
 Example Scripts
 ---------------
 
-In the scripts/ directory, the HeaterPulses.py script shows how to process some basic heater pulse bolometer data. This is the script I used to analyze the pulser amplitude scan data and plot the linearity and time resolution of the bolometer.
+In the scripts/ directory, the HeaterPulses.py script shows how to process some basic heater pulse bolometer data.
+This is the script I used to analyze the pulser amplitude scan data and plot the linearity and time resolution of the bolometer.
+
+The TestSimpleTrigger.py script shows how to apply the SimpleTrigger and a Butterworth filter to "background" data (ie. data that is not triggered by heater pulses).

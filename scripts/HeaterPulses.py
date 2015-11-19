@@ -57,6 +57,7 @@ FL.write_output('heater_pulses')
 plot_heater_data=False
 if plot_heater_data:
 
+    import pandas
     data=pandas.DataFrame(FL.events)
 
     # select events with a certain heater width
