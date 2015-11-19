@@ -43,7 +43,7 @@ FL.add_module(pulse_params)
 
 FL.loop()
 FL.finish()
-FL.write_output('test')
+FL.write_output('heater_pulses')
 
 ##################################
 # Extra stuff - make plots, etc. #

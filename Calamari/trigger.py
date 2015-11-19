@@ -77,6 +77,7 @@ class SimpleTrigger(Module):
         chain.GetEntry(i)
         return waveform, j_out
 
+    @Module._execute
     def execute(self,chain,i):
         '''
         Do this on each entry in TChain.  Increments through waveform in chunks of
@@ -118,6 +119,7 @@ class SimpleTrigger(Module):
             # control flow for FileLooper.loop() to deal with...
             return events[0]
 
+    @Module._finish
     def finish(self):
         pass
 

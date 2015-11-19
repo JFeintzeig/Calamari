@@ -5,42 +5,90 @@ from base import *
 
 class Filter(Module):
     '''
-    apply basic Butterworth filter to waveform
+    Apply basic Butterworth filter to waveform
     '''
-    #TODO: have some dt_sample, i, num lieing around, change this...
-    def __init__(self,name,cutoff,order,input_name, output_name):
+    def __init__(self,name,cutoff,order,dt_sample,input_name, output_name,
+        plot=False):
+        '''
+        Inputs:
+        -name: string name of module
+        -cutoff: float, frequency cutoff of filter in Hz
+        -order: int, order of butterworth filter
+        -dt_sample: float, time interval for one sample
+        -input_name: string, name of waveform in event dict
+        -output_name: string, name for outputed filtered waveform in event dict
+        -plot:, bool, if True show a plot of the unfiltered and filtered waveforms
+        '''
         self.cutoff=cutoff
         self.order=order
+        self.dt_sample=dt_sample
         self.input_name=input_name
         self.output_name=output_name
+        self.plot=plot
         super(Filter,self).__init__(name)
 
     def butter_lowpass(self,fs):
+        '''
+        Create butterworth filter
+
+        Inputs:
+        -fs, float, sampling rate (Hz)
+
+        Returns:
+        -b, a coefficients for filter
+        '''
         nyq = 0.5 * fs
         high = self.cutoff / nyq
         b, a = butter(self.order, high, btype='low')
         return b, a
 
     def butter_lowpass_filter(self,data,fs):
-        b, a = butter_lowpass(fs,)
+        '''
+        Apply butterworth filter to data
+
+        Inputs:
+        -data: array, unfiltered waveform
+        -fs: float, sampling rate (Hz)
+
+        Returns:
+        -array of filtered waveform
+        '''
+        b, a = self.butter_lowpass(fs,)
         y = lfilter(b, a, data)
         return y
 
-    def plot_filtered(self):
-        pylab.plot(t,wf,linewidth=2,color='black',label='Unfiltered Pulse')
-        pylab.plot(t,filtered,linewidth=2,color='red',label='Filtered Pulse')
-        pylab.title('Event number (Time in run in seconds): %i' % (i))
+    def plot_filtered(self,wf,filtered):
+        '''
+        Make a plot of both raw and filtered waveform
+
+        Inputs:
+        -wf: array, raw unfiltered waveform
+        -filtered: array, filtered waveform
+        '''
+        pylab.plot(wf,linewidth=2,color='black',label='Unfiltered Pulse')
+        pylab.plot(filtered,linewidth=2,color='red',label='Filtered Pulse')
+        pylab.xlabel('Sample number')
+        pylab.ylabel('Voltage')
         pylab.grid()
         pylab.xlabel('Time (ms)')
-        pylab.savefig(out_dir+'pulse_%i_%i.png' % (i,num))
-        pylab.clf()
+        pylab.show()
 
     @Module._execute
     def execute(self,event):
+        '''
+        Do this on every event. Apply a butterworth filter to each waveform.
+
+        Inputs:
+        -event: dict containing event data
+
+        Returns:
+        -dict containing existing event data, plus filtered waveform
+        '''
         wf=event[self.input_name]
-        t=1000*numpy.linspace(0,len(wf)*dt_sample-dt_sample,len(wf))
-        filtered=butter_lowpass_filter(wf,1/dt_sample)
-        self.plot_filtered()
+        t=1000*numpy.linspace(0,len(wf)*self.dt_sample-self.dt_sample,len(wf))
+        filtered=self.butter_lowpass_filter(wf,1/self.dt_sample)
+        if self.plot:
+            self.plot_filtered(wf,filtered)
         event[self.output_name]=filtered
         return event
 
@@ -66,6 +114,12 @@ class PulseParams(Module):
         '''
         Do this on each event. It calculates pulse height, decay time, leading
         edge time, etc. for a bolometer pulse
+
+        Inputs:
+        -event: dict of event data
+
+        Returns:
+        -dict containing existing event data, plus newly calculated parameters
         '''
         dt_sample=event['dt_sample']
         waveform=event[self.waveform_name]
