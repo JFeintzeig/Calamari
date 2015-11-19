@@ -4,77 +4,119 @@ from base import *
 
 class SimpleTrigger(Module):
     '''
-    module to loop through waveforms in chunks, trigger on pieces of waveforms
+    Module to loop through waveforms in chunks, trigger on pieces of waveforms
     that are a certain number of standard deviations above the mean baseline,
     and then return a larger chunk of the waveform around the triggered section
-    as an "event"
-
-    while most other Modules should take in an event dictionary, this module
-    instead takes in the TChain and the current entry number to look at...
+    as an "event". This is meant for "background" data, ie. data where every entry
+    in the TChain is bolometer data, not interspersed with heater waveforms
     '''
-    def __init__(self,name,dt_trigger,dt_sample,n_samples,n_sigma):
+    def __init__(self,name,dt_trigger,dt_sample,n_samples,n_sigma,readout_length):
+        '''
+        Inputs:
+        -name: string name of module
+        -dt_trigger: float, time interval to average together data, compare to
+        previous baseline, and decide whether to trigger or not
+        -dt_sample: float, time interval of one sample in the waveform
+        -n_samples: int, number of samples in waveform in TChain
+        -n_sigma: float, trigger threshold in number of standard deviations above
+        baseline
+        -readout_length: float, time in seconds corresponding to how much of the
+        waveform around the trigger point to read out
+        '''
         self.dt_trigger=dt_trigger
         self.dt_sample=dt_sample
-        self.stride=self.dt_trigger/self.dt_sample
-        self.n_samples=n_samples
+        self.n_samples=int(n_samples)
         self.n_sigma=n_sigma
+        # daq_buffer contains daq data from the previous two entries
         self.daq_buffer=numpy.zeros(2*n_samples)
+        self.readout_length=readout_length
+        self.stride=self.dt_trigger/self.dt_sample
         super(SimpleTrigger,self).__init__(name)
 
-    #TODO: i just copy/pasted the following 31 lines, need to fix up for module,
-    # integrate with standard module stuff...
     #TODO: could probably cache means of strides to calc full mean more efficiently
     def trigger(self):
+        '''
+        Apply trigger condition
+
+        Returns:
+        -bool, True if trigger was triggered
+        '''
+        # mean and std calculated using the waveform buffer up to the current chunk
         mean=numpy.mean(self.daq_buffer[:-self.stride])
         std=numpy.std(self.daq_buffer[:-self.stride])
         return numpy.mean(self.daq_buffer[-self.stride:])>mean+self.n_sigma*std
 
     def build_event(self,chain,i,j):
-        #readout 0.5 sec interval, 0.25 sec before trigger point, 0.25 sec after
-        waveform_length=0.5
-        waveform=numpy.zeros(0.5/self.dt_sample)
-        start=int(j*self.stride-0.25/self.dt_sample)
-        end=int(j*self.stride+0.25/self.dt_sample)
+        '''
+        Extract a sub-piece of the waveform around the triggered chunk
+        '''
+        # put extracted waveform here
+        waveform=numpy.zeros(self.readout_length/self.dt_sample)
+        # indices of TChain waveform to start/end extraction
+        start=int(j*self.stride-self.readout_length/2/self.dt_sample)
+        end=int(j*self.stride+self.readout_length/2/self.dt_sample)
         if start>0 and end<=self.n_samples:
             waveform=numpy.array(chain.Waveform[start:end])
         elif start<0:
+            # if readout start falls in previous waveform, go back 1 entry in chain
             waveform[-1*start:]=chain.Waveform[:end]
             chain.GetEntry(i-1)
             waveform[:-1*start]=chain.Waveform[self.n_samples+start:]
         elif end>=n_samples:
+            # if readout end falls in next waveform, go forward 1 entry in chain
             waveform[:self.n_samples-start]=chain.Waveform[start:]
             chain.GetEntry(i+1)
             waveform[self.n_samples-start:]=chain.Waveform[:end-self.n_samples]
 
-        #TODO: fix this
-        #eek, if waveform_length, n_samples, and stride don't all match up,
+        # skip ahead in waveform to after readout window before once again looking
+        # for chunks to trigger
+        #TODO: eek, if readout_length, n_samples, and stride don't all match up,
         # this will cause stride to be shifted, may not be divisible into n_samples
         # evenly, and inner loop below (j) could try to read beyond end of waveform
-        j_out=j+int(waveform_length/2/self.dt_sample/self.stride)
+        j_out=j+int(self.readout_length/2/self.dt_sample/self.stride)
         chain.GetEntry(i)
         return waveform, j_out
 
     def execute(self,chain,i):
-        # here we do the inner loop over j's, calling build_event for each...
+        '''
+        Do this on each entry in TChain.  Increments through waveform in chunks of
+        length self.stride, comparing the average voltage in each chunk to the
+        avg/standard deviation of the data leading up to the chunk, and decides to
+        trigger and readout the given chunk and surrounding window, or not.
+
+        Input:
+        -chain: ROOT TChain holding SQUID data
+        -i: int, current position in TChain
+        '''
         chain.GetEntry(i)
+        # we look at chunks in waveform of length self.stride
+        # j is the index to loop through chunks of waveform
         j=0
         events=[]
-        while j < n_samples/stride:
+        while j < self.n_samples/self.stride:
+            # shift daq_buffer left, fill end with current stride
             self.daq_buffer[:-self.stride]=self.daq_buffer[self.stride:]
             start=int(self.stride*j)
             end=int(self.stride*(j+1))
             self.daq_buffer[-self.stride:]=chain.Waveform[start:end]
-            #trigger
+            # if current stride satisfies trigger condition, read out waveform
+            # and form event
             if self.trigger():
-                #get waveform of event
                 wf,j_out=self.build_event(chain,i,j)
-                #TODO: change this to build event from all info in chain, turn into dict
-                events+=[wf]
+                events+=[{'Waveform':wf}]
                 j=j_out
+                #TODO: add other event data (times, etc.) to dict!
                 print "got event!"
             else:
                 j+=1
-        return events
+        if len(events)==0:
+            return False
+        elif len(events)==1:
+            return events[0]
+        elif len(events)>1:
+            #TODO: need to figure out how to put multiple events back into
+            # control flow for FileLooper.loop() to deal with...
+            return events[0]
 
     def finish(self):
         pass
