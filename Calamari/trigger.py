@@ -133,7 +133,8 @@ class HeaterTrigger(Module):
     it finds the trigger time and returns the bolometer data from that time and a
     surrounding time window
     '''
-    def __init__(self,name,window_time,min_voltage_trigger_threshold):
+    def __init__(self,name,window_time,min_voltage_trigger_threshold,
+        heater_channel,bolometer_channel):
         '''
         Input:
         -name: string, name to call module for pretty printing
@@ -150,6 +151,8 @@ class HeaterTrigger(Module):
         self.window=0
         self.dt_sample=0
         self.n_samples=0
+        self.heater_channel=heater_channel
+        self.bolometer_channel=bolometer_channel
         super(HeaterTrigger,self).__init__(name)
 
     def calculate_heater_params(self,chain_entry,min_ind):
@@ -245,9 +248,9 @@ class HeaterTrigger(Module):
         chain.GetEntry(i)
 
         # ch 1 is heater channel, i want bolometer events
-        if chain.Ch==1:
+        if chain.Ch==self.heater_channel:
             return False
-        assert chain.Ch==0
+        assert chain.Ch==self.bolometer_channel
 
         # fill info that should be the same for all events
         if self.n_samples==0:

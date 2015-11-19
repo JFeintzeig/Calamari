@@ -15,6 +15,10 @@ window_time=30*MSEC
 # only trigger on heater pulses with voltages beyond this number
 trigger_voltage_thresh=-0.025 # Volts
 
+# channel numbers corresponding to heater vs. bolometer data in the root tree
+heater_channel=1
+bolometer_channel=0
+
 # this directory should contain only ROOT files from this specific run
 # when I ran it I only used the first ~120 files
 data_dir='/Users/jfeintzeig/CUORE/Data/squid/Run_000103/test/'
@@ -30,7 +34,8 @@ tree_name='data_tree'
 
 FL=Calamari.FileLooper(file_names,tree_name)
 
-trigger=Calamari.HeaterTrigger('HeaterTrigger',window_time,trigger_voltage_thresh)
+trigger=Calamari.HeaterTrigger('HeaterTrigger',window_time,trigger_voltage_thresh,
+    heater_channel,bolometer_channel)
 FL.add_trigger(trigger)
 
 pulse_params=Calamari.PulseParams('PulseParams','Waveform')
