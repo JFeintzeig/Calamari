@@ -32,3 +32,5 @@ The PulseParams class calculates basic pulse parameters, such as amplitude, deca
 
 Example Scripts
 ---------------
+
+In the scripts/ directory, the HeaterPulses.py script shows how to process some basic heater pulse bolometer data. This is the script I used to analyze the pulser amplitude scan data and plot the linearity and time resolution of the bolometer.
